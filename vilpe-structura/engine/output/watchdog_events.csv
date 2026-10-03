@@ -1,0 +1,25 @@
+structure,check,start,end,days,kind,evidence
+Katto 1,Indoor sensor silent,2025-05-13 16:13:23,2025-06-18 13:00:33,35.9,Equipment,no values for 36 days while the unit kept reporting fan speed
+Katto 2,Outdoor sensor reads too warm (sun or heat),2025-05-12 00:00:00,2025-10-05 00:00:00,146.0,Data trust,daytime average 8.2 °C above the other outdoor sensors
+Katto 2,Outdoor sensor reads too warm (sun or heat),2026-03-16 00:00:00,2026-09-06 00:00:00,174.0,Data trust,daytime average 6.3 °C above the other outdoor sensors
+Katto 3,Outdoor sensor reads too warm (sun or heat),2025-05-12 00:00:00,2025-09-07 00:00:00,118.0,Data trust,daytime average 6.2 °C above the other outdoor sensors
+Katto 3,Outdoor sensor reads too warm (sun or heat),2025-09-22 00:00:00,2025-09-28 00:00:00,6.0,Data trust,daytime average 3.5 °C above the other outdoor sensors
+Katto 3,Outdoor sensor reads too warm (sun or heat),2026-04-06 00:00:00,2026-04-19 00:00:00,13.0,Data trust,daytime average 4.1 °C above the other outdoor sensors
+Katto 3,Outdoor sensor reads too warm (sun or heat),2026-04-27 00:00:00,2026-09-06 00:00:00,132.0,Data trust,daytime average 5.6 °C above the other outdoor sensors
+Katto 4,Outdoor sensor reads too warm (sun or heat),2025-06-16 00:00:00,2025-09-14 00:00:00,90.0,Data trust,daytime average 8.7 °C above the other outdoor sensors
+Katto 4,Outdoor sensor reads too warm (sun or heat),2025-09-22 00:00:00,2025-09-28 00:00:00,6.0,Data trust,daytime average 3.7 °C above the other outdoor sensors
+Katto 4,Outdoor sensor reads too warm (sun or heat),2026-03-02 00:00:00,2026-09-13 00:00:00,195.0,Data trust,daytime average 6.9 °C above the other outdoor sensors
+Viherkatto 1,Indoor sensor silent,2025-05-13 17:16:58,2025-06-18 14:10:40,35.9,Equipment,no values for 36 days while the unit kept reporting fan speed
+Viherkatto 2,Fan stopped,2025-05-13 16:13:56,2026-05-27 19:48:16,379.1,Equipment,0 rpm for 379 days; outdoor above -7 °C 93% of that time
+Viherkatto 2,Fan stopped,2026-06-05 09:48:53,2026-06-07 11:49:04,2.1,Equipment,0 rpm for 2 days; outdoor above -7 °C 100% of that time
+Viherkatto 2,Fan stopped,2026-06-10 13:48:54,2026-06-15 23:44:05,5.4,Equipment,0 rpm for 5 days; outdoor above -7 °C 100% of that time
+Viherkatto 2,Fan stopped,2026-06-16 03:44:44,2026-06-23 11:45:04,7.3,Equipment,0 rpm for 7 days; outdoor above -7 °C 100% of that time
+Viherkatto 2,Fan stopped,2026-07-08 05:48:11,2026-08-09 13:44:46,32.3,Equipment,0 rpm for 32 days; outdoor above -7 °C 100% of that time
+Viherkatto 2,Fan stopped,2026-08-10 15:46:28,2026-08-15 17:50:55,5.1,Equipment,0 rpm for 5 days; outdoor above -7 °C 100% of that time
+Viherkatto 2,Fan stopped,2026-08-16 19:49:20,2026-08-19 21:44:00,3.1,Equipment,0 rpm for 3 days; outdoor above -7 °C 100% of that time
+Viherkatto 2,Fan stopped,2026-08-20 01:44:35,2026-08-22 01:47:41,2.0,Equipment,0 rpm for 2 days; outdoor above -7 °C 100% of that time
+Viherkatto 2,Fan stopped,2026-08-25 03:42:33,2026-09-10 13:31:25,16.4,Equipment,0 rpm for 16 days; outdoor above -7 °C 100% of that time
+Viherkatto 2,Outdoor sensor reads too warm (sun or heat),2025-05-19 00:00:00,2025-06-08 00:00:00,20.0,Data trust,daytime average 3.9 °C above the other outdoor sensors
+Viherkatto 2,Outdoor sensor reads too warm (sun or heat),2026-04-27 00:00:00,2026-05-10 00:00:00,13.0,Data trust,daytime average 3.9 °C above the other outdoor sensors
+Viherkatto 2,Outdoor sensor reads too warm (sun or heat),2026-06-01 00:00:00,2026-06-07 00:00:00,6.0,Data trust,daytime average 5.3 °C above the other outdoor sensors
+Hallin alapohja,Sensors likely swapped,2025-05-14 06:11:20,2026-09-11 04:43:28,484.9,Data trust,outdoor sensor vs other outdoor sensors: 0.74; indoor sensor vs other outdoor sensors: 0.97

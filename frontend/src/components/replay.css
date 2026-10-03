@@ -1,0 +1,13 @@
+.replay { display: grid; grid-template-columns: auto 1fr; gap: 8px 12px; align-items: center; margin-top: 12px; }
+.replay-play {
+  display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 14px;
+  border-radius: 999px; border: 1px solid var(--slate); background: var(--slate); color: #fff; font-weight: 500;
+}
+.replay-play svg { fill: currentColor; }
+.replay-range { width: 100%; accent-color: var(--slate); }
+.replay-date { grid-column: 1 / -1; font-size: 0.85rem; color: var(--ink-2); }
+@media (min-width: 720px) {
+  .replay { grid-template-columns: auto 1fr auto; }
+  .replay-date { grid-column: auto; min-width: 150px; text-align: right; }
+}
+.ongoing { font-style: normal; font-size: 0.72rem; margin-left: 8px; padding: 1px 7px; border-radius: 999px; background: var(--amber-soft); color: var(--amber); }

@@ -1,0 +1,22 @@
+class,structure,vilpe_latest,ours_latest
+very_sensitive,Katto 1,0.00125,0.00127
+very_sensitive,Katto 2,5e-05,0.03505
+very_sensitive,Katto 3,0.0843,0.05246
+very_sensitive,Katto 4,0.00615,0.02355
+very_sensitive,Viherkatto 1,0.0,0.0
+very_sensitive,Viherkatto 2,0.03095,0.03162
+very_sensitive,Hallin alapohja,0.69496,0.05374
+sensitive,Katto 1,0.00125,0.00107
+sensitive,Katto 2,5e-05,0.02247
+sensitive,Katto 3,0.0843,0.03479
+sensitive,Katto 4,0.00615,0.01422
+sensitive,Viherkatto 1,0.0,0.0
+sensitive,Viherkatto 2,0.03095,0.01933
+sensitive,Hallin alapohja,0.69496,0.04048
+medium_resistant,Katto 1,0.00125,8e-05
+medium_resistant,Katto 2,5e-05,0.00042
+medium_resistant,Katto 3,0.0843,0.00198
+medium_resistant,Katto 4,0.00615,0.00028
+medium_resistant,Viherkatto 1,0.0,0.0
+medium_resistant,Viherkatto 2,0.03095,0.00063
+medium_resistant,Hallin alapohja,0.69496,0.00131

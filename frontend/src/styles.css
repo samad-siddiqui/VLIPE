@@ -1,0 +1,98 @@
+:root {
+  --concrete: #eef0ee;
+  --paper: #ffffff;
+  --ink: #1e2a2b;
+  --ink-2: #4a5759;
+  --ink-3: #7c8789;
+  --line: #d3d8d6;
+  --moss: #4e7a3a;
+  --moss-soft: #e4ecdc;
+  --slate: #2c5d73;
+  --slate-soft: #dfe9ee;
+  --amber: #c2851c;
+  --amber-soft: #f6ead2;
+  --brick: #b0412e;
+  --brick-soft: #f4e0db;
+  --radius: 10px;
+  --font: 'Archivo', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; }
+body {
+  margin: 0;
+  background: var(--concrete);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3 { font-weight: 600; font-stretch: 112%; line-height: 1.15; margin: 0; letter-spacing: -0.01em; }
+h1 { font-size: clamp(1.6rem, 4vw, 2.2rem); }
+h2 { font-size: 1.25rem; }
+p { margin: 0; }
+.num { font-variant-numeric: tabular-nums; font-stretch: 100%; }
+.muted { color: var(--ink-2); }
+.faint { color: var(--ink-3); font-size: 0.8rem; }
+
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--slate); outline-offset: 2px; }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 44px; padding: 0 18px; border-radius: var(--radius);
+  border: 1px solid var(--line); background: var(--paper); font-weight: 500;
+}
+.btn:hover { border-color: var(--ink-3); }
+.btn-primary { background: var(--slate); border-color: var(--slate); color: #fff; }
+.btn-primary:hover { background: #244e61; border-color: #244e61; }
+.btn-block { width: 100%; }
+
+.field { display: grid; gap: 4px; margin-top: 12px; }
+.field label { font-size: 0.8rem; color: var(--ink-2); }
+.field input {
+  height: 44px; padding: 0 12px; border-radius: var(--radius);
+  border: 1px solid var(--line); background: var(--paper);
+}
+
+/* Login */
+.login { min-height: 100%; display: grid; grid-template-columns: 1fr; }
+.login-art { display: none; }
+.login-form { display: flex; align-items: center; justify-content: center; padding: 32px 20px; }
+.login-card { width: 100%; max-width: 400px; }
+.brand { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.brand-mark { width: 28px; height: 28px; }
+.roles { display: grid; gap: 8px; margin-top: 20px; }
+.role {
+  display: flex; align-items: center; gap: 12px; text-align: left; width: 100%;
+  padding: 12px 14px; border-radius: var(--radius); border: 1px solid var(--line); background: var(--paper);
+}
+.role[aria-pressed='true'] { border: 2px solid var(--slate); padding: 11px 13px; }
+.role strong { display: block; font-weight: 600; }
+.role span { font-size: 0.85rem; color: var(--ink-2); }
+.role-dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+
+@media (min-width: 900px) {
+  .login { grid-template-columns: 1.15fr 1fr; }
+  .login-art {
+    display: flex; flex-direction: column; justify-content: space-between;
+    padding: 48px; background: var(--ink); color: #dfe6e4;
+  }
+  .login-art h1 { color: #fff; max-width: 18ch; }
+  .login-art .roof-sketch { margin: 32px 0; }
+}
+
+/* Roof drawing in blueprint style */
+.roof-sketch { width: 100%; height: auto; display: block; }
+.roof-sketch .outline { fill: none; stroke: currentColor; stroke-width: 1; opacity: 0.8; }
+.roof-sketch .green { fill: currentColor; fill-opacity: 0.08; }
+.roof-sketch .fan { fill: currentColor; }
+.roof-sketch .label { fill: currentColor; font-size: 11px; opacity: 0.75; }
+
+/* Placeholder pages */
+.page { max-width: 1100px; margin: 0 auto; padding: 24px 20px 64px; }
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
+.card { background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; }

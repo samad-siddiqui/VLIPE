@@ -1,0 +1,36 @@
+.back { display: inline-block; margin-bottom: 12px; color: var(--slate); text-decoration: none; font-weight: 500; }
+.back::before { content: '\2190'; margin-right: 6px; }
+
+.detail-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-bottom: 14px; }
+.detail-score { display: flex; align-items: center; gap: 12px; }
+.detail-score .big { font-size: 2.4rem; font-weight: 600; line-height: 1; }
+.detail-score small { font-size: 1rem; font-weight: 400; color: var(--ink-3); }
+
+.detail-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px; }
+.detail-facts div { background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; display: grid; }
+.detail-facts strong { font-size: 1.4rem; }
+
+.charts { display: grid; grid-template-columns: 1fr; gap: 12px; margin-bottom: 12px; }
+.chart-card { background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; }
+.chart-note { font-size: 0.85rem; margin: 2px 0 8px; }
+.chart { width: 100%; height: auto; display: block; }
+.chart-grid { stroke: var(--line); stroke-width: 1; }
+.chart-axis { font-size: 11px; fill: var(--ink-3); }
+.chart-ref { font-size: 11px; font-weight: 600; }
+
+.events { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 12px; }
+.events li { border-top: 1px solid var(--line); padding-top: 10px; }
+.event-head { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+.kind { font-size: 0.75rem; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+.kind-eq { background: var(--amber-soft); color: var(--amber); }
+.kind-trust { background: var(--slate-soft); color: var(--slate); }
+
+@media (min-width: 720px) {
+  .detail-facts { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+.event-group summary { cursor: pointer; list-style: none; }
+.event-group summary::-webkit-details-marker { display: none; }
+.event-group summary .faint::after { content: ' Show each'; color: var(--slate); }
+.event-group[open] summary .faint::after { content: ' Hide'; }
+.event-sub { margin: 8px 0 0 12px; padding-left: 12px; border-left: 2px solid var(--line); display: grid; gap: 6px; font-size: 0.85rem; }
