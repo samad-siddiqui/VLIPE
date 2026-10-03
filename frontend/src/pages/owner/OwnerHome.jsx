@@ -1,10 +1,10 @@
-import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useData, GRADE, monthYear } from '../../data.jsx'
 import { useReplay } from '../../replay.js'
 import ReplayBar from '../../components/ReplayBar.jsx'
+import OwnerShell from '../../components/OwnerShell.jsx'
 import { ROOF_VIEWBOX, ROOF_SHAPES, FAN_POSITIONS } from '../../roof.js'
-import { Grid, Sensor, AlertTri, FileText, BuildingIcon, Gear, Bell, Help, ChevronDown, User } from '../../components/Icons.jsx'
+import { AlertTri } from '../../components/Icons.jsx'
 import './owner.css'
 
 // Same bands step_e_health_score.py uses to grade a score, so the ring colour always matches the grade badge.
@@ -116,27 +116,16 @@ function recentActivity(structures) {
   return rows.sort((a, b) => b.start.localeCompare(a.start)).slice(0, 4)
 }
 
-const NAV = [
-  { icon: Grid, label: 'Dashboard', active: true },
-  { icon: Sensor, label: 'Sensors' },
-  { icon: AlertTri, label: 'Alerts' },
-  { icon: FileText, label: 'Reports' },
-  { icon: BuildingIcon, label: 'Buildings', to: '/owner/certificate' },
-  { icon: Gear, label: 'Settings' },
-]
-
 export default function OwnerHome() {
-  const { data, error, setRole } = useData()
+  const { data, error } = useData()
   const replay = useReplay(data)
   const navigate = useNavigate()
-  const [menuOpen, setMenuOpen] = useState(false)
-  const [selectedId, setSelectedId] = useState('viherkatto-2')
 
   if (error) return <p className="muted">{error}</p>
   if (!data || !replay.date) return <p className="muted">Loading building data</p>
 
   const { structures } = replay
-  const { summary, building } = data
+  const { building } = data
   const scored = structures.filter(s => s.score != null)
   const avgScore = scored.length ? scored.reduce((n, s) => n + s.score, 0) / scored.length : 0
   const sorted = [...structures].sort((a, b) => (a.score ?? 999) - (b.score ?? 999))
@@ -146,39 +135,7 @@ export default function OwnerHome() {
   const rh = dailyRange(data.structures, 'indoor_rh', 14)
 
   return (
-    <div className="sp-shell">
-      <aside className="sp-sidebar">
-        <p className="sp-brand">Sense Passport</p>
-        <nav>
-          {NAV.map(n => (
-            <button key={n.label} className={n.active ? 'active' : n.to ? '' : 'soon'}
-              onClick={() => n.to && navigate(n.to)} title={n.to || n.active ? undefined : 'Not in this demo'}>
-              <n.icon /> {n.label}
-            </button>
-          ))}
-        </nav>
-      </aside>
-
-      <main className="sp-main">
-        <header className="sp-topbar">
-          <h1>Dashboard</h1>
-          <div className="sp-top-actions">
-            <button className="sp-icon-btn" aria-label="Help"><Help /></button>
-            <button className="sp-icon-btn" aria-label="Notifications"><Bell /><i className="sp-badge">1</i></button>
-            <div className="sp-user-wrap">
-              <button className="sp-user" onClick={() => setMenuOpen(o => !o)}>
-                <span className="sp-user-avatar"><User /></span> {building.name.split(' ')[0]} <ChevronDown />
-              </button>
-              {menuOpen && (
-                <div className="sp-menu" role="menu">
-                  <button onClick={() => navigate('/story')}>Watch the story</button>
-                  <button onClick={() => { setRole(null); navigate('/login') }}>Sign out</button>
-                </div>
-              )}
-            </div>
-          </div>
-        </header>
-
+    <OwnerShell active="Dashboard" title="Dashboard">
         <div className="sp-grid">
           <section className="sp-card sp-floor-card">
             <div className="sp-card-head">
@@ -250,7 +207,6 @@ export default function OwnerHome() {
             ))}
           </ul>
         </section>
-      </main>
-    </div>
+    </OwnerShell>
   )
 }

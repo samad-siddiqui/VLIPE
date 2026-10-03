@@ -4,6 +4,10 @@ import Login from './pages/Login.jsx'
 import OwnerHome from './pages/owner/OwnerHome.jsx'
 import StructureDetail from './pages/owner/StructureDetail.jsx'
 import Certificate from './pages/owner/Certificate.jsx'
+import Sensors from './pages/owner/Sensors.jsx'
+import Alerts from './pages/owner/Alerts.jsx'
+import Reports from './pages/owner/Reports.jsx'
+import Settings from './pages/owner/Settings.jsx'
 import Passport from './pages/passport/Passport.jsx'
 import Insurer from './pages/insurer/Insurer.jsx'
 import Service from './pages/service/Service.jsx'
@@ -23,6 +27,10 @@ export default function App() {
       <Route path="/owner" element={<RequireRole role="owner"><OwnerHome /></RequireRole>} />
       <Route path="/owner/structure/:structureId" element={<RequireRole role="owner"><StructureDetail /></RequireRole>} />
       <Route path="/owner/certificate" element={<RequireRole role="owner"><Certificate /></RequireRole>} />
+      <Route path="/owner/sensors" element={<RequireRole role="owner"><Sensors /></RequireRole>} />
+      <Route path="/owner/alerts" element={<RequireRole role="owner"><Alerts /></RequireRole>} />
+      <Route path="/owner/reports" element={<RequireRole role="owner"><Reports /></RequireRole>} />
+      <Route path="/owner/settings" element={<RequireRole role="owner"><Settings /></RequireRole>} />
       <Route path="/insurer" element={<RequireRole role="insurer"><Insurer /></RequireRole>} />
       <Route path="/service" element={<RequireRole role="service"><Service /></RequireRole>} />
       <Route path="/passport/:buildingId" element={<Passport />} />
