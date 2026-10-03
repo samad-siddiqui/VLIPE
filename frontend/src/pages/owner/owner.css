@@ -45,7 +45,8 @@ a.btn { text-decoration: none; color: var(--ink); }
 .sp-sidebar button { display: flex; align-items: center; gap: 10px; padding: 10px 10px; border-radius: 8px; background: none; border: none; text-align: left; font-size: 0.92rem; color: var(--ink-2); }
 .sp-sidebar button svg { width: 18px; height: 18px; flex: none; }
 .sp-sidebar button.active { background: #fbe9d0; color: #a6660f; font-weight: 600; }
-.sp-sidebar button:not(.active):hover { background: #f4f4f3; }
+.sp-sidebar button:not(.active):not(.soon):hover { background: #f4f4f3; }
+.sp-sidebar button.soon { opacity: 0.45; cursor: default; }
 
 .sp-main { flex: 1; min-width: 0; padding: 20px 28px 48px; }
 .sp-topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }

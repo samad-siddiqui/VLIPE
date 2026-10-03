@@ -61,7 +61,11 @@ export default function Insurer() {
       <aside className="sg-sidebar">
         <p className="sg-brand"><Shield /> SENSEGUARD<br /><span>INSURE</span></p>
         <nav>
-          {NAV.map(n => <button key={n.label} className={n.active ? 'active' : ''}><n.icon /> {n.label}</button>)}
+          {NAV.map(n => (
+            <button key={n.label} className={n.active ? 'active' : 'soon'} title={n.active ? undefined : 'Not in this demo'}>
+              <n.icon /> {n.label}
+            </button>
+          ))}
         </nav>
       </aside>
 

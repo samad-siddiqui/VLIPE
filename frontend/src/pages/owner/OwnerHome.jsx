@@ -151,8 +151,8 @@ export default function OwnerHome() {
         <p className="sp-brand">Sense Passport</p>
         <nav>
           {NAV.map(n => (
-            <button key={n.label} className={n.active ? 'active' : ''}
-              onClick={() => n.to ? navigate(n.to) : null}>
+            <button key={n.label} className={n.active ? 'active' : n.to ? '' : 'soon'}
+              onClick={() => n.to && navigate(n.to)} title={n.to || n.active ? undefined : 'Not in this demo'}>
               <n.icon /> {n.label}
             </button>
           ))}
