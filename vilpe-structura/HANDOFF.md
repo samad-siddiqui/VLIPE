@@ -40,8 +40,27 @@ Demo story: portfolio, replay of the warehouse year (old alarms vs ours), watchd
   silent 36 days after install. Roofs 2, 3, 4 outdoor sensors read over 3 °C warm in daytime for 270 to 320 days
   (sun or heat). Crawl space sensors likely swapped (outdoor corr 0.74 vs 0.92 to 0.97 for others).
 
+- Step E `engine/step_e_health_score.py`: daily 0-100 score per structure (mold 40, risk zone 20, drying 20,
+  system 20). Green roof 2 lowest today at 55.6, Attention. 19 automated tests passing across all six steps.
+
+- Step F `engine/step_f_export.py`: packs everything into `engine/output/data.json`, copied straight into
+  `frontend/public/data.json` so the app has no separate build step to run.
+
+- React app in `frontend/` (not `app/`, that path changed during the repo reorg). Three signed-in roles,
+  each gated so one role cannot load another's routes:
+  - Owner: roof map, 16-month replay, per-structure score/chart breakdown, certificate
+  - Insurer: portfolio certification %, open equipment faults, certificate verify tool (LocalTapiola, proposed)
+  - VILPE service: fleet-wide work-order queue, one recommended fix per finding type, equipment uptime per unit
+  Plus a public, no-login passport page (the certificate's QR target) and a 6-chapter narrated Story mode for
+  the pitch itself. Verified end to end against a fresh clone, zero console errors.
+
 ## Next
-- E score, F export `engine/output/data.json`, then design and React app in `app/`
+- Ask VILPE whether the stopped fan (Green roof 2) and the swapped crawl-space sensors were deliberate tests,
+  wording in the pitch depends on the answer either way (see "After the hackathon" below)
+- Business model (07:00-08:30 per schedule) and deck
+- Optional, only if time allows: wire the crawl-space-swapped scenario into the UI so the demo can show what a
+  triggered Structura alert actually looks like, right now the live data only proves the alert stays quiet
+- Optional, lowest priority: deploy to a public URL (not required by the brief, nice-to-have backup)
 
 ## Schedule
 Data engine until ~20:30, proof check ~21:00, design ~22:00, React app until ~04:00, sleep 04:00 to 07:00,
