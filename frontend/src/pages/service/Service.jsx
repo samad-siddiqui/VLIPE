@@ -1,28 +1,26 @@
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useData } from '../../data.jsx'
 import { FAN_POSITIONS } from '../../roof.js'
 import { WINDOW_DAYS } from '../../certification.js'
-import AppShell from '../../components/AppShell.jsx'
-import '../roles.css'
+import { Check, Wrench, Droplet, User, Sensor } from '../../components/Icons.jsx'
 import './service.css'
 
 const shortDate = iso => new Date(iso.slice(0, 10) + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
 const addDays = (iso, n) => { const d = new Date(iso.slice(0, 10) + 'T00:00:00'); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10) }
 
-// Stable, display-only order number from the structure + check, not a separate tracked ID.
 function orderNumber(key) {
   let h = 0
   for (const c of key) h = (h * 31 + c.charCodeAt(0)) >>> 0
   return `WO-2026-${String(h % 1000).padStart(3, '0')}`
 }
 
-// Real indoor RH average over a date range, from the structure's own daily history. null if no readings.
 function avgIndoorRh(daily, from, to) {
   const rows = daily.filter(d => d.date >= from && d.date <= to && d.indoor_rh != null)
   if (!rows.length) return null
   return rows.reduce((n, r) => n + r.indoor_rh, 0) / rows.length
 }
 
-// What VILPE service should do for each kind of finding
 const ACTIONS = {
   'Fan stopped': 'Inspect the fan motor, power supply and control voltage. Check the MCU-2 settings.',
   'Indoor sensor silent': 'Check the sensor battery and radio range to the control unit.',
@@ -31,29 +29,52 @@ const ACTIONS = {
   'Sensors likely swapped': 'Swap the indoor and outdoor sensor roles in the Sense cloud, then confirm readings.',
 }
 
-// Open findings move through the same 4 stages every work order does: detected, triaged, worked, closed.
-// "Assigned" and "In progress" are read off the same open/resolved state the rest of the app uses, not a
-// separately tracked status, there is no real dispatch system behind this demo.
-function Stepper({ resolved }) {
-  const steps = ['Alert', 'Assigned', 'In progress', 'Resolved']
-  const doneCount = resolved ? 4 : 3
+const STEPS = ['Alert', 'Assigned', 'In progress', 'Resolved']
+
+function Stepper({ doneCount }) {
   return (
     <div className="wo-steps">
-      {steps.map((label, i) => (
-        <div key={label} className={`wo-step ${i < doneCount ? 'done' : i === doneCount ? 'active' : ''}`}>
-          <i>{i < doneCount ? '✓' : i === doneCount ? '•' : ''}</i>
-          <span>{label}</span>
-        </div>
-      ))}
+      {STEPS.map((label, i) => {
+        const state = i < doneCount ? 'done' : i === doneCount ? 'active' : 'todo'
+        return (
+          <div key={label} className="wo-step-wrap">
+            <div className={`wo-step ${state}`}>
+              {state === 'done' ? <Check /> : state === 'active' ? <Wrench /> : null}
+            </div>
+            <span className={state === 'todo' ? 'faint' : ''}>{label}</span>
+            {i < STEPS.length - 1 && <i className={`wo-connector ${i < doneCount ? 'done' : ''}`} />}
+          </div>
+        )
+      })}
     </div>
   )
 }
 
-// VILPE's own view: every open finding becomes a work order. This is the service revenue line.
+// A tiny line+area chart: flat-ish "before" segment, a vertical marker, then the "during"/"after" segment
+// shaded under the curve. Shape is illustrative (we don't keep hourly points here), the two labelled
+// numbers it anchors are real indoor RH averages from the structure's own daily history.
+function RhChart({ before, after }) {
+  const bY = 58 - (before / 100) * 48
+  const aY = 58 - (after / 100) * 48
+  const path = `M2,56 C14,${bY + 6} 24,${bY} 34,${bY} L34,${bY} C44,${(bY + aY) / 2} 50,${aY} 62,${aY} L74,${aY - 4} L86,${aY}`
+  const areaPath = `${path} L86,58 L34,58 Z`
+  return (
+    <svg className="rh-chart" viewBox="0 0 88 60" preserveAspectRatio="none">
+      {[0, 1, 2, 3].map(i => <line key={i} x1="2" x2="86" y1={10 + i * 14} y2={10 + i * 14} className="rh-grid" />)}
+      <path d={areaPath} className="rh-area" />
+      <path d={path} className="rh-line" />
+      <line x1="34" x2="34" y1="4" y2="58" className="rh-marker" />
+      <circle cx="34" cy={bY} r="2.4" className="rh-dot" />
+    </svg>
+  )
+}
+
 export default function Service() {
-  const { data, error } = useData()
-  if (error) return <AppShell><p className="muted">{error}</p></AppShell>
-  if (!data) return <AppShell><p className="muted">Loading</p></AppShell>
+  const { data, error, setRole } = useData()
+  const navigate = useNavigate()
+  const [menuOpen, setMenuOpen] = useState(false)
+  if (error) return <div className="wo-page"><p className="muted">{error}</p></div>
+  if (!data) return <div className="wo-page"><p className="muted">Loading</p></div>
 
   const lastDay = data.building.period.to
   const since = new Date(new Date(lastDay).getTime() - (WINDOW_DAYS - 1) * 864e5).toISOString().slice(0, 10)
@@ -65,103 +86,108 @@ export default function Service() {
     const groups = {}
     for (const w of s.watchdog) {
       const g = (groups[w.check] ??= {
-        id: `${s.id}-${w.check}`, order: orderNumber(`${s.id}-${w.check}`), label, check: w.check, kind: w.kind,
-        first: w.start, last: w.end, lastStart: w.start, days: 0, count: 0, evidence: w.evidence, longest: 0,
+        id: `${s.id}-${w.check}`, order: orderNumber(`${s.id}-${w.check}`), structure: label, type: s.type, check: w.check, kind: w.kind,
+        first: w.start, last: w.end, lastStart: w.start, days: 0, count: 0, evidence: w.evidence,
       })
       if (w.end > g.last) { g.last = w.end; g.lastStart = w.start }
       g.days += w.days; g.count += 1
-      if (w.days > g.longest) { g.longest = w.days; g.evidence = w.evidence }
     }
-    // Before/during RH is anchored to the most recent occurrence, not the earliest, the oldest findings on
-    // this site started on day 1 of monitoring, so there is no "before" baseline to compare against.
     for (const g of Object.values(groups)) {
+      const isResolved = g.last.slice(0, 10) < since
       g.beforeRh = avgIndoorRh(s.daily, addDays(g.lastStart, -7), addDays(g.lastStart, -1))
-      g.duringRh = avgIndoorRh(s.daily, g.lastStart.slice(0, 10), g.last.slice(0, 10))
-      ;(g.last.slice(0, 10) >= since ? orders : resolved).push(g)
+      g.afterRh = isResolved
+        ? avgIndoorRh(s.daily, g.last.slice(0, 10), addDays(g.last, 7))
+        : avgIndoorRh(s.daily, g.lastStart.slice(0, 10), g.last.slice(0, 10))
+      ;(isResolved ? resolved : orders).push(g)
     }
   }
   orders.sort((a, b) => (a.kind === b.kind ? b.days - a.days : a.kind === 'Equipment' ? -1 : 1))
-  const avgUptime = data.structures.reduce((n, s) => n + s.equipment_uptime_pct, 0) / data.structures.length
+  resolved.sort((a, b) => b.last.localeCompare(a.last))
 
   return (
-    <AppShell>
-      <div className="r-head">
-        <h1>Work Orders &mdash; Moisture Alerts</h1>
-        <p className="muted">Faults the old alarms never showed, turned into work orders. Every fix moves a structure closer to certified dry.</p>
-      </div>
+    <div className="wo-page">
+      <header className="wo-header">
+        <div>
+          <h1>Work Orders &mdash; Moisture Alerts</h1>
+          <i className="wo-underline" />
+        </div>
+        <div className="wo-avatar-wrap">
+          <button className="wo-avatar" onClick={() => setMenuOpen(o => !o)} aria-label="Account menu">
+            <User />
+            <i className="wo-avatar-dot" />
+          </button>
+          {menuOpen && (
+            <div className="wo-menu" role="menu">
+              <button onClick={() => navigate('/story')}>Watch the story</button>
+              <button onClick={() => { setRole(null); navigate('/login') }}>Sign out</button>
+            </div>
+          )}
+        </div>
+      </header>
 
-      <div className="r-grid">
-        <div className="r-stat"><strong className="num">{orders.length}</strong><span>Open work orders</span></div>
-        <div className="r-stat"><strong className="num">{orders.filter(o => o.kind === 'Equipment').length}</strong><span>High priority, equipment</span></div>
-        <div className="r-stat"><strong className="num">{resolved.length}</strong><span>Resolved findings</span></div>
-        <div className="r-stat"><strong className="num">{avgUptime.toFixed(0)}%</strong><span>Average equipment uptime</span></div>
-      </div>
-
-      <section className="r-card">
-        <h2>Open work orders</h2>
-        <p className="faint">{data.building.name}, {data.building.city}. Seen in the last {WINDOW_DAYS} days.</p>
-        <ul className="wo-list">
-          {orders.map(o => (
-            <li key={o.id} className="wo-card">
-              <div className="wo-top">
-                <div>
-                  <span className="wo-order num">{o.order}</span>
-                  <strong className="wo-title"> &mdash; {o.label}, {o.check}</strong>
-                </div>
-                <span className={`r-pill ${o.kind === 'Equipment' ? 'high' : 'med'}`}>{o.kind === 'Equipment' ? 'High' : 'Medium'}</span>
+      <div className="wo-list">
+        {orders.map((o, i) => (
+          <article key={o.id} className={`wo-card ${i === 0 ? 'featured' : ''}`}>
+            {i !== 0 && <span className="wo-ribbon">new</span>}
+            <div className="wo-col wo-col-main">
+              <div className="wo-title-row">
+                <strong className="wo-id num">{o.order}</strong>
+                <span className="wo-dash">&mdash;</span>
+                <span className="wo-loc">{o.structure}, {o.type}</span>
+                <span className={`wo-pill ${o.kind === 'Equipment' ? 'pill-red' : 'pill-amber'}`}>
+                  {o.kind === 'Equipment' ? <Droplet /> : <Sensor />}
+                  {o.check}
+                </span>
               </div>
-              <Stepper resolved={false} />
-              <div className="wo-bottom">
-                <div className="wo-evidence">
-                  <p className="faint num">First seen {shortDate(o.first)}, {o.count === 1 ? 'once' : `${o.count} times`}, {Math.round(o.days)} days in total</p>
-                  <p className="muted">{o.evidence}</p>
-                  <p className="r-action"><strong>Action:</strong> {ACTIONS[o.check] ?? 'Inspect on site.'}</p>
-                </div>
-                {(o.beforeRh != null && o.duringRh != null) && (
-                  <div className="wo-rh">
-                    <span className="faint">Indoor RH</span>
-                    <div className="wo-rh-vals">
-                      <span><strong className="num">{o.beforeRh.toFixed(0)}%</strong><small>before</small></span>
-                      <span className="wo-rh-arrow">&rarr;</span>
-                      <span><strong className="num" style={{ color: o.duringRh > o.beforeRh ? 'var(--brick)' : 'inherit' }}>{o.duringRh.toFixed(0)}%</strong><small>during</small></span>
+              <Stepper doneCount={2} />
+              <p className="faint num wo-meta">First seen {shortDate(o.first)}, {o.count === 1 ? 'once' : `${o.count} times`}, {Math.round(o.days)} days in total</p>
+              {i === 0 && <>
+                <p className="muted wo-evidence">{o.evidence}</p>
+                <p className="wo-action"><strong>Action:</strong> {ACTIONS[o.check] ?? 'Inspect on site.'}</p>
+              </>}
+            </div>
+
+            <div className="wo-col wo-col-assigned">
+              {i === 0 && <p className="faint wo-col-label">Assigned</p>}
+              <div className="wo-assignee">
+                <User />
+              </div>
+              {i === 0 && <p className="wo-assignee-name">VILPE Service</p>}
+            </div>
+
+            <div className="wo-col wo-col-chart">
+              {i === 0 && <p className="faint wo-col-label">Relative humidity</p>}
+              {(o.beforeRh != null && o.afterRh != null) ? (
+                <>
+                  <RhChart before={o.beforeRh} after={o.afterRh} />
+                  {i === 0 && (
+                    <div className="rh-labels">
+                      <span><strong className="num">{o.beforeRh.toFixed(0)}%</strong> RH<br /><small>Before</small></span>
+                      <span><strong className="num">{o.afterRh.toFixed(0)}%</strong> RH<br /><small>During</small></span>
                     </div>
-                  </div>
-                )}
-              </div>
-            </li>
-          ))}
-        </ul>
-      </section>
+                  )}
+                </>
+              ) : <p className="faint">No prior reading</p>}
+            </div>
+          </article>
+        ))}
+      </div>
 
-      <section className="r-card">
+      <section className="wo-resolved">
         <h2>Resolved</h2>
-        <ul className="wo-list">
+        <ul className="wo-resolved-list">
           {resolved.map(o => (
-            <li key={o.id} className="wo-card wo-card-compact">
-              <div className="wo-top">
-                <div>
-                  <span className="wo-order num">{o.order}</span>
-                  <strong className="wo-title"> &mdash; {o.label}, {o.check}</strong>
-                </div>
-                <span className="faint num">{shortDate(o.first)} to {shortDate(o.last)}</span>
+            <li key={o.id}>
+              <div className="wo-resolved-row">
+                <strong className="num">{o.order}</strong>
+                <span>&mdash; {o.structure}, {o.check}</span>
+                <span className="wo-pill pill-gray">Resolved</span>
               </div>
-              <Stepper resolved={true} />
+              <Stepper doneCount={4} />
             </li>
           ))}
         </ul>
       </section>
-
-      <section className="r-card">
-        <h2>Equipment uptime per unit</h2>
-        <ul className="r-list">
-          {data.structures.map(s => (
-            <li key={s.id} className="r-row">
-              <span>{FAN_POSITIONS[s.name]?.label ?? s.name} <span className="faint">{FAN_POSITIONS[s.name]?.serial}</span></span>
-              <strong className="num" style={{ color: s.equipment_uptime_pct < 90 ? 'var(--brick)' : 'var(--ink)' }}>{s.equipment_uptime_pct}%</strong>
-            </li>
-          ))}
-        </ul>
-      </section>
-    </AppShell>
+    </div>
   )
 }

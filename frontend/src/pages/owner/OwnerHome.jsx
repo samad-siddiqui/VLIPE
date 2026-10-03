@@ -1,19 +1,11 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useData, GRADE, monthYear } from '../../data.jsx'
 import { useReplay } from '../../replay.js'
-import AppShell from '../../components/AppShell.jsx'
-import RoofMap from '../../components/RoofMap.jsx'
 import ReplayBar from '../../components/ReplayBar.jsx'
-import { FAN_POSITIONS } from '../../roof.js'
+import { ROOF_VIEWBOX, ROOF_SHAPES, FAN_POSITIONS } from '../../roof.js'
+import { Grid, Sensor, AlertTri, FileText, BuildingIcon, Gear, Bell, Help, ChevronDown, User } from '../../components/Icons.jsx'
 import './owner.css'
-
-const PARTS = [
-  { key: 'mold', label: 'Mold risk', max: 40 },
-  { key: 'risk_zone', label: 'Time in risk zone', max: 20 },
-  { key: 'drying', label: 'Drying performance', max: 20 },
-  { key: 'system', label: 'System health', max: 20 },
-]
 
 // Same bands step_e_health_score.py uses to grade a score, so the ring colour always matches the grade badge.
 function scoreGrade(score) {
@@ -22,200 +14,243 @@ function scoreGrade(score) {
   if (score >= 50) return 'Attention'
   return 'At risk'
 }
+// Mockup's 3-colour floor-plan vocabulary (Normal/Warning/Alert), mapped from our real 4-tier grade.
+function floorStatus(grade) {
+  if (grade === 'Certified dry' || grade === 'Good') return 'normal'
+  if (grade === 'Attention') return 'warning'
+  return 'alert'
+}
 
 function ScoreDonut({ score }) {
-  const r = 42, c = 2 * Math.PI * r
+  const r = 38, c = 2 * Math.PI * r
   const pct = Math.max(0, Math.min(100, score)) / 100
-  const color = GRADE[scoreGrade(score)]?.color ?? 'var(--ink-2)'
+  const color = GRADE[scoreGrade(score)]?.color ?? '#9c7a3c'
   return (
-    <div className="donut">
+    <div className="sp-donut">
       <svg viewBox="0 0 100 100">
-        <circle className="donut-track" cx="50" cy="50" r={r} />
-        <circle className="donut-fill" cx="50" cy="50" r={r} stroke={color}
+        <circle className="sp-donut-track" cx="50" cy="50" r={r} />
+        <circle className="sp-donut-fill" cx="50" cy="50" r={r} stroke={color}
           strokeDasharray={`${c * pct} ${c}`} transform="rotate(-90 50 50)" />
       </svg>
-      <div className="donut-label">
-        <strong className="num">{score.toFixed(0)}</strong>
-        <span>/ 100</span>
-      </div>
     </div>
   )
 }
 
-// Every watchdog finding across the portfolio, newest first, the owner's plain-language version of the
-// service team's work-order queue, real events only, nothing synthesised.
+// One real dot per real structure (7), not a dense synthetic sensor grid, we only have one control unit
+// per structure and every other screen in this app already says "7 structures". The visual language
+// (floor outline + coloured status dots + legend) matches the mockup; the dot count stays honest.
+function SenseFloorPlan({ structures, onPick }) {
+  const { lowRoof, flatRoof, greenRoof } = ROOF_SHAPES
+  return (
+    <svg className="sp-floor" viewBox={ROOF_VIEWBOX} role="img" aria-label="Warehouse floor plan with one status dot per structure">
+      <rect className="sp-room" x={lowRoof.x} y={lowRoof.y} width={lowRoof.w} height={lowRoof.h} />
+      <rect className="sp-room" x={flatRoof.x} y={flatRoof.y} width={flatRoof.w} height={flatRoof.h} />
+      <polygon className="sp-room" points={greenRoof.points} />
+      <text className="sp-room-label" x={lowRoof.x + 8} y={lowRoof.y + lowRoof.h - 8}>{lowRoof.label}</text>
+      <text className="sp-room-label" x={flatRoof.x + 8} y={flatRoof.y + flatRoof.h - 8}>{flatRoof.label}</text>
+      <text className="sp-room-label" x={470} y={204}>{greenRoof.label}</text>
+      {structures.map(s => {
+        const pos = FAN_POSITIONS[s.name]
+        if (!pos || s.grade == null) return null
+        const status = floorStatus(s.grade)
+        const labelLeft = pos.x > 300 && pos.x < 365
+        return (
+          <g key={s.id} className="sp-dot-wrap" onClick={() => onPick(s.id)} role="button" tabIndex="0"
+             onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && onPick(s.id)}>
+            {status === 'alert' && <circle cx={pos.x} cy={pos.y} r="15" className="sp-dot-halo" />}
+            <circle cx={pos.x} cy={pos.y} r="16" fill="transparent" />
+            <circle cx={pos.x} cy={pos.y} r="8" className={`sp-dot sp-dot-${status}`} />
+            <text className="sp-dot-label" x={labelLeft ? pos.x - 13 : pos.x + 13} y={pos.y + 4} textAnchor={labelLeft ? 'end' : 'start'}>
+              {pos.label}
+            </text>
+          </g>
+        )
+      })}
+    </svg>
+  )
+}
+
+// Real cross-structure range per day (lowest/highest reading among the 7 structures that day), not a
+// synthetic intraday curve, our data is daily, not hourly, so the Min/Max pair is honestly "across the
+// portfolio" rather than "across one day."
+function dailyRange(structures, field, days) {
+  const byDate = {}
+  for (const s of structures) {
+    for (const r of s.daily.slice(-days)) {
+      if (r[field] == null) continue
+      const d = (byDate[r.date] ??= { min: Infinity, max: -Infinity })
+      d.min = Math.min(d.min, r[field]); d.max = Math.max(d.max, r[field])
+    }
+  }
+  const dates = Object.keys(byDate).sort()
+  return { dates, min: dates.map(d => byDate[d].min), max: dates.map(d => byDate[d].max) }
+}
+
+function MiniChart({ dates, min, max, unit }) {
+  const W = 230, H = 86, padL = 24, padB = 16
+  const all = [...min, ...max]
+  const lo = Math.min(...all), hi = Math.max(...all)
+  const span = (hi - lo) || 1
+  const x = i => padL + (i / Math.max(dates.length - 1, 1)) * (W - padL - 6)
+  const y = v => 6 + (1 - (v - lo) / span) * (H - padB - 6)
+  const path = vals => vals.map((v, i) => `${i === 0 ? 'M' : 'L'}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ')
+  return (
+    <svg className="sp-chart" viewBox={`0 0 ${W} ${H}`}>
+      <text x="2" y="12" className="sp-chart-axis">{hi.toFixed(0)}{unit}</text>
+      <text x="2" y={H - padB} className="sp-chart-axis">{lo.toFixed(0)}{unit}</text>
+      <line x1={padL} x2={W - 6} y1={H - padB} y2={H - padB} className="sp-chart-grid" />
+      <path d={path(max)} className="sp-chart-line sp-chart-max" fill="none" />
+      <path d={path(min)} className="sp-chart-line sp-chart-min" fill="none" />
+      <text x={padL} y={H - 2} className="sp-chart-axis">{new Date(dates[0] + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</text>
+      <text x={W - 6} y={H - 2} textAnchor="end" className="sp-chart-axis">{new Date(dates[dates.length - 1] + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</text>
+    </svg>
+  )
+}
+
 function recentActivity(structures) {
   const rows = []
   for (const s of structures) {
     const label = FAN_POSITIONS[s.name]?.label ?? s.name
     for (const w of s.watchdog) rows.push({ label, ...w })
   }
-  return rows.sort((a, b) => b.start.localeCompare(a.start)).slice(0, 6)
+  return rows.sort((a, b) => b.start.localeCompare(a.start)).slice(0, 4)
 }
 
-function Metric({ value, label, tone }) {
-  return (
-    <div className="metric">
-      <span className="metric-value num" style={tone ? { color: tone } : undefined}>{value}</span>
-      <span className="metric-label">{label}</span>
-    </div>
-  )
-}
-
-function GradeBadge({ grade }) {
-  const g = GRADE[grade]
-  return <span className="badge" style={{ background: g?.soft, color: g?.color }}>{grade}</span>
-}
-
-function StructurePanel({ s }) {
-  if (s.score == null) {
-    return (
-      <section className="panel" aria-live="polite">
-        <p className="faint">{s.type}</p>
-        <h2>{s.label}</h2>
-        <p className="muted" style={{ marginTop: 12 }}>No readings yet on this date.</p>
-      </section>
-    )
-  }
-  return (
-    <section className="panel" aria-live="polite">
-      <div className="panel-head">
-        <div>
-          <p className="faint">{s.type}</p>
-          <h2>{s.label}</h2>
-        </div>
-        <GradeBadge grade={s.grade} />
-      </div>
-      <p className="panel-score num">{s.score.toFixed(1)}<span> / 100</span></p>
-
-      <div className="parts">
-        {PARTS.map(p => {
-          const v = s.parts[p.key]
-          return (
-            <div key={p.key} className="part">
-              <div className="part-row"><span>{p.label}</span><span className="num">{v.toFixed(1)} / {p.max}</span></div>
-              <div className="bar"><div style={{ width: `${(v / p.max) * 100}%` }} /></div>
-            </div>
-          )
-        })}
-      </div>
-
-      <div className="panel-block">
-        <p className="panel-title">What the watchdog found</p>
-        {s.issues.length === 0
-          ? <p className="muted">No issues so far.</p>
-          : (
-            <ul className="issues">
-              {s.issues.map(i => (
-                <li key={i.check}>
-                  <span>{i.check}{i.ongoing && <em className="ongoing">ongoing</em>}</span>
-                  <span className="num">{i.days} days</span>
-                </li>
-              ))}
-            </ul>
-          )}
-      </div>
-
-      <div className="panel-block compare">
-        <div><span className="faint">Old alarms so far</span><strong className="num">{s.oldAlarms}</strong></div>
-        <div><span className="faint">Mold index, ours</span><strong className="num">{s.moldOurs.toFixed(4)}</strong></div>
-        <div><span className="faint">Mold index, VILPE today</span><strong className="num">{s.moldVilpe.toFixed(4)}</strong></div>
-      </div>
-
-      <Link className="btn btn-block" to={`/owner/structure/${s.id}`}>Open details</Link>
-    </section>
-  )
-}
+const NAV = [
+  { icon: Grid, label: 'Dashboard', active: true },
+  { icon: Sensor, label: 'Sensors' },
+  { icon: AlertTri, label: 'Alerts' },
+  { icon: FileText, label: 'Reports' },
+  { icon: BuildingIcon, label: 'Buildings', to: '/owner/certificate' },
+  { icon: Gear, label: 'Settings' },
+]
 
 export default function OwnerHome() {
-  const { data, error } = useData()
+  const { data, error, setRole } = useData()
   const replay = useReplay(data)
+  const navigate = useNavigate()
+  const [menuOpen, setMenuOpen] = useState(false)
   const [selectedId, setSelectedId] = useState('viherkatto-2')
 
-  if (error) return <AppShell><p className="muted">{error}</p></AppShell>
-  if (!data || !replay.date) return <AppShell><p className="muted">Loading building data</p></AppShell>
+  if (error) return <p className="muted">{error}</p>
+  if (!data || !replay.date) return <p className="muted">Loading building data</p>
 
-  const { structures, date } = replay
-  const selected = structures.find(s => s.id === selectedId) ?? structures[0]
-  const sorted = [...structures].sort((a, b) => (a.score ?? 999) - (b.score ?? 999))
+  const { structures } = replay
   const { summary, building } = data
-
-  // Headline numbers for the date being shown
-  const oldAlarms = structures.reduce((n, s) => n + s.oldAlarms, 0)
-  const withIssue = structures.filter(s => s.issues.length > 0).length
-  const certified = structures.filter(s => s.grade === 'Certified dry').length
   const scored = structures.filter(s => s.score != null)
   const avgScore = scored.length ? scored.reduce((n, s) => n + s.score, 0) / scored.length : 0
+  const sorted = [...structures].sort((a, b) => (a.score ?? 999) - (b.score ?? 999))
+  const alerting = sorted.find(s => floorStatus(s.grade) === 'alert') ?? sorted.find(s => floorStatus(s.grade) === 'warning')
   const activity = recentActivity(data.structures)
+  const temp = dailyRange(data.structures, 'indoor_temp', 14)
+  const rh = dailyRange(data.structures, 'indoor_rh', 14)
 
   return (
-    <AppShell>
-      <div className="owner-head">
-        <h1>{building.name}</h1>
-        <p className="muted">{building.city}. {summary.structures} Sense fans, {monthYear(building.period.from)} to {monthYear(building.period.to)}.</p>
-      </div>
+    <div className="sp-shell">
+      <aside className="sp-sidebar">
+        <p className="sp-brand">Sense Passport</p>
+        <nav>
+          {NAV.map(n => (
+            <button key={n.label} className={n.active ? 'active' : ''}
+              onClick={() => n.to ? navigate(n.to) : null}>
+              <n.icon /> {n.label}
+            </button>
+          ))}
+        </nav>
+      </aside>
 
-      <div className="owner-top">
-        <div className="metrics">
-          <Metric value={oldAlarms} label="Old alarms fired, all on healthy structures" tone="var(--brick)" />
-          <Metric value={summary.smart_alerts_total} label="Structura alerts, because there was no real risk" tone="var(--moss)" />
-          <Metric value={`${withIssue} of ${summary.structures}`} label="Units with a silent equipment or sensor issue" />
-          <Metric value={`${certified} of ${summary.structures}`} label={replay.isToday ? 'Certified dry today' : 'Certified dry on this date'} />
-        </div>
-        <div className="score-card">
-          <ScoreDonut score={avgScore} />
-          <div>
-            <p className="faint">Building health score</p>
-            <p className="muted" style={{ fontSize: '0.82rem' }}>Average across {summary.structures} structures, {date}</p>
+      <main className="sp-main">
+        <header className="sp-topbar">
+          <h1>Dashboard</h1>
+          <div className="sp-top-actions">
+            <button className="sp-icon-btn" aria-label="Help"><Help /></button>
+            <button className="sp-icon-btn" aria-label="Notifications"><Bell /><i className="sp-badge">1</i></button>
+            <div className="sp-user-wrap">
+              <button className="sp-user" onClick={() => setMenuOpen(o => !o)}>
+                <span className="sp-user-avatar"><User /></span> {building.name.split(' ')[0]} <ChevronDown />
+              </button>
+              {menuOpen && (
+                <div className="sp-menu" role="menu">
+                  <button onClick={() => navigate('/story')}>Watch the story</button>
+                  <button onClick={() => { setRole(null); navigate('/login') }}>Sign out</button>
+                </div>
+              )}
+            </div>
           </div>
+        </header>
+
+        <div className="sp-grid">
+          <section className="sp-card sp-floor-card">
+            <div className="sp-card-head">
+              <h2>Warehouse moisture plan</h2>
+            </div>
+            <SenseFloorPlan structures={structures} onPick={id => navigate(`/owner/structure/${id}`)} />
+            <div className="sp-legend">
+              <span><i className="sp-dot-normal" />Normal</span>
+              <span><i className="sp-dot-warning" />Warning</span>
+              <span><i className="sp-dot-alert" />Alert</span>
+            </div>
+            <ReplayBar replay={replay} />
+          </section>
+
+          <aside className="sp-right">
+            {alerting && (
+              <div className="sp-alert-banner">
+                <AlertTri /> Moisture event detected &mdash; {alerting.label}
+              </div>
+            )}
+
+            <div className="sp-card">
+              <p className="sp-card-title">Building Health Score</p>
+              <div className="sp-score-row">
+                <ScoreDonut score={avgScore} />
+                <p className="sp-score-num num">{avgScore.toFixed(0)}<span>/ 100</span></p>
+              </div>
+            </div>
+
+            <div className="sp-card">
+              <p className="sp-card-title">Temperature (&deg;C)<span className="sp-chart-legend"><i className="sp-min" />Min <i className="sp-max" />Max</span></p>
+              <MiniChart dates={temp.dates} min={temp.min} max={temp.max} unit="°" />
+            </div>
+
+            <div className="sp-card">
+              <p className="sp-card-title">Relative Humidity (%)<span className="sp-chart-legend"><i className="sp-min" />Min <i className="sp-max" />Max</span></p>
+              <MiniChart dates={rh.dates} min={rh.min} max={rh.max} unit="%" />
+            </div>
+
+            <div className="sp-card">
+              <p className="sp-card-title">Recent Activity</p>
+              <ul className="sp-activity">
+                {activity.map((a, i) => (
+                  <li key={i} className={i === 0 ? 'sp-activity-top' : ''}>
+                    <strong>{i === 0 ? 'Critical Alert: ' : ''}{a.label} &mdash; {a.check}</strong>
+                    <span className="faint num">{new Date(a.start).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </aside>
         </div>
-      </div>
 
-      <div className="owner-grid">
-        <section className="map-card">
-          <RoofMap structures={structures} selectedId={selected.id} onSelect={setSelectedId} />
-          <div className="legend">
-            {Object.entries(GRADE).map(([name, g]) => (
-              <span key={name}><i style={{ background: g.color }} />{name}</span>
-            ))}
+        <section className="sp-card" style={{ marginTop: 16 }}>
+          <div className="sp-card-head">
+            <h2>All structures</h2>
+            <span className="faint num">{building.name}, {monthYear(building.period.from)} to {monthYear(building.period.to)}</span>
           </div>
-          <ReplayBar replay={replay} />
-        </section>
-        <StructurePanel s={selected} />
-      </div>
-
-      <div className="owner-grid">
-        <section className="list-card">
-          <h2>All structures <span className="faint num">on {date}</span></h2>
           <ul className="slist">
             {sorted.map(s => (
               <li key={s.id}>
-                <button className="srow" aria-pressed={s.id === selected.id} onClick={() => setSelectedId(s.id)}>
+                <Link className="srow" to={`/owner/structure/${s.id}`}>
                   <i style={{ background: GRADE[s.grade]?.color ?? 'var(--line)' }} />
                   <span className="srow-name">{s.label}<small>{s.type}</small></span>
                   <span className="srow-issues">{s.issues.length ? s.issues.map(i => i.check).join(', ') : 'No issues so far'}</span>
                   <span className="srow-score num">{s.score == null ? '' : s.score.toFixed(0)}</span>
-                </button>
+                </Link>
               </li>
             ))}
           </ul>
         </section>
-
-        <section className="list-card activity-card">
-          <h2>Recent activity</h2>
-          <ul className="activity-list">
-            {activity.map((a, i) => (
-              <li key={i}>
-                <i className={a.kind === 'Equipment' ? 'high' : 'med'} />
-                <div>
-                  <strong>{a.label}: {a.check}</strong>
-                  <p className="faint num">{new Date(a.start).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </section>
-      </div>
-    </AppShell>
+      </main>
+    </div>
   )
 }

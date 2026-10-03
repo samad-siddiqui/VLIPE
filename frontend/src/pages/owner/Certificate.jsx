@@ -1,28 +1,62 @@
 import { Link } from 'react-router-dom'
 import { useData, GRADE } from '../../data.jsx'
-import { ROOF_VIEWBOX, ROOF_SHAPES, FAN_POSITIONS } from '../../roof.js'
+import { FAN_POSITIONS } from '../../roof.js'
 import { certify, certificateId, passportUrl, WINDOW_DAYS, MIN_SCORE, MAX_MOLD } from '../../certification.js'
-import AppShell from '../../components/AppShell.jsx'
 import QrCode from '../../components/QrCode.jsx'
 import './certificate.css'
 
-// Zone diagram for the passport: same roof plan as everywhere else, dots coloured by each structure's
-// current grade instead of the plain blueprint look, so the diagram carries real status, not decoration.
-function ZoneDiagram({ rows }) {
-  const { lowRoof, flatRoof, greenRoof } = ROOF_SHAPES
+// Same 3-word vocabulary the passport cover uses, mapped from our real 4-tier grade. Certified dry and Good
+// both read as healthy to a non-technical viewer (Optimal/Stable); Attention and At risk both mean "look
+// at this" (Monitor). The underlying score and grade are unchanged and still shown in the table below.
+function passportStatus(grade) {
+  if (grade === 'Certified dry') return 'optimal'
+  if (grade === 'Good') return 'stable'
+  return 'monitor'
+}
+
+// Isometric warehouse, one roof zone per real structure (7, not a rounder decorative number, every other
+// screen in this app already says "7 structures" and this diagram shouldn't contradict that). Coordinates
+// are a plain isometric projection (W=150 length, D=60 depth, H=42 height) computed once and hard-coded.
+const IZ = {
+  front: '60,215 189.9,140 189.9,98 60,173',
+  side: '60,215 8,185 8,143 60,173',
+  zones: [
+    { a: [60, 173], b: [78.6, 162.3], c: [26.6, 132.3], d: [8, 143], center: [43.3, 152.6] },
+    { a: [78.6, 162.3], b: [97.1, 151.6], c: [45.2, 121.6], d: [26.6, 132.3], center: [61.9, 141.9] },
+    { a: [97.1, 151.6], b: [115.7, 140.9], c: [63.7, 110.9], d: [45.2, 121.6], center: [80.4, 131.2] },
+    { a: [115.7, 140.9], b: [134.2, 130.1], c: [82.3, 100.1], d: [63.7, 110.9], center: [99, 120.5] },
+    { a: [134.2, 130.1], b: [152.8, 119.4], c: [100.8, 89.4], d: [82.3, 100.1], center: [117.5, 109.8] },
+    { a: [152.8, 119.4], b: [171.3, 108.7], c: [119.4, 78.7], d: [100.8, 89.4], center: [136.1, 99.1] },
+    { a: [171.3, 108.7], b: [189.9, 98], c: [137.9, 68], d: [119.4, 78.7], center: [154.6, 88.4] },
+  ],
+}
+
+function IsoBuilding({ rows }) {
   return (
-    <svg className="zone-diagram" viewBox={ROOF_VIEWBOX} role="img" aria-label="Roof plan with certification status per structure">
-      <rect className="zd-outline" x={lowRoof.x} y={lowRoof.y} width={lowRoof.w} height={lowRoof.h} />
-      <rect className="zd-outline" x={flatRoof.x} y={flatRoof.y} width={flatRoof.w} height={flatRoof.h} />
-      <polygon className="zd-outline zd-green" points={greenRoof.points} />
-      {rows.map(({ s, label }) => {
-        const f = FAN_POSITIONS[s.name]
-        const color = GRADE[s.latest.grade]?.color ?? 'currentColor'
+    <svg className="iso-building" viewBox="-20 25 240 205" role="img" aria-label="Isometric warehouse with one roof zone per structure, coloured by certification status">
+      <polygon points={IZ.front} className="iso-wall iso-wall-front" />
+      <polygon points={IZ.side} className="iso-wall iso-wall-side" />
+      {IZ.zones.map((z, i) => {
+        const row = rows[i]
+        if (!row) return null
+        const color = GRADE[row.s.latest.grade]?.color ?? '#9c7a3c'
+        const pts = `${z.a.join(',')} ${z.b.join(',')} ${z.c.join(',')} ${z.d.join(',')}`
+        const [cx, cy] = z.center
         return (
-          <g key={s.id}>
-            <circle cx={f.x} cy={f.y} r="5.5" fill={color} />
-            <text className="zd-label" x={f.x + 10} y={f.y + 2}>{label}</text>
-            <text className="zd-status" x={f.x + 10} y={f.y + 13}>{s.latest.grade}</text>
+          <g key={row.s.id}>
+            <polygon points={pts} className="iso-zone" style={{ fill: color }} />
+            <polygon points={pts} className="iso-zone-outline" />
+          </g>
+        )
+      })}
+      {IZ.zones.map((z, i) => {
+        const row = rows[i]
+        if (!row) return null
+        const [cx, cy] = z.center
+        return (
+          <g key={`label-${row.s.id}`} className="iso-label-group">
+            <circle cx={cx} cy={cy} r="7.5" className="iso-code-dot" />
+            <text x={cx} y={cy + 2.3} className="iso-code">{i + 1}</text>
           </g>
         )
       })}
@@ -39,8 +73,8 @@ const monthsBetween = (from, to) => {
 
 export default function Certificate() {
   const { data, error } = useData()
-  if (error) return <AppShell><p className="muted">{error}</p></AppShell>
-  if (!data) return <AppShell><p className="muted">Loading building data</p></AppShell>
+  if (error) return <p className="muted">{error}</p>
+  if (!data) return <p className="muted">Loading building data</p>
 
   const { building } = data
   const rows = data.structures.map(s => ({ s, label: FAN_POSITIONS[s.name]?.label ?? s.name, c: certify(s) }))
@@ -48,25 +82,25 @@ export default function Certificate() {
   const issued = rows[0].c.to
   const certId = certificateId(building.id, issued)
   const url = passportUrl(building.id, certId)
+  const months = monthsBetween(building.period.from, building.period.to)
 
   return (
-    <AppShell>
+    <div className="pp-page">
       <div className="cert-actions no-print">
         <Link className="back" to="/owner">All structures</Link>
         <div className="cert-buttons">
-          <a className="btn" href={url}>Open building passport</a>
+          <a className="btn" href={url}>Open shareable passport link</a>
           <button className="btn btn-primary" onClick={() => window.print()}>Print or save as PDF</button>
         </div>
       </div>
 
-      <article className="cert">
-        <header className="cert-head">
+      <article className="pp-doc">
+        <header className="pp-head">
           <div>
-            <p className="cert-kicker">Building Moisture Passport</p>
-            <h1>Dry Structure Certificate</h1>
-            <p className="muted">{building.name}, {building.city}</p>
+            <h1>Building Moisture<br />Passport</h1>
+            <p className="pp-sub">Certificate of Verified Structure Health<br />{building.name}, {building.city}, Finland</p>
           </div>
-          <div className="cert-seal" aria-hidden="true">
+          <div className="pp-seal" aria-hidden="true">
             <svg viewBox="0 0 120 120">
               <circle cx="60" cy="60" r="54" />
               <circle cx="60" cy="60" r="46" />
@@ -77,30 +111,41 @@ export default function Certificate() {
               <path className="seal-icon" d="M60 44 C68 54 74 61 74 69 A14 14 0 0 1 46 69 C46 61 52 54 60 44 Z" />
             </svg>
           </div>
-          <dl className="cert-meta num">
-            <div><dt>Certificate</dt><dd>{certId}</dd></div>
-            <div><dt>Issued</dt><dd>{longDate(issued)}</dd></div>
-            <div><dt>Valid until</dt><dd>{longDate(addDays(issued, WINDOW_DAYS))}</dd></div>
-          </dl>
         </header>
+
+        <IsoBuilding rows={rows} />
+        <ul className="pp-legend">
+          {rows.map((r, i) => (
+            <li key={r.s.id}>
+              <i style={{ background: GRADE[r.s.latest.grade]?.color }}>{i + 1}</i>
+              <span>{r.label}</span>
+              <small>{passportStatus(r.s.latest.grade)}</small>
+            </li>
+          ))}
+        </ul>
+        <p className="pp-zone-caption">Zone status: Optimal, Stable, Monitor</p>
+
+        <div className="pp-stats">
+          <div><span className="faint">Sensor coverage</span><strong className="num">{rows.length} structures</strong></div>
+          <div><span className="faint">Monitoring period</span><strong className="num">{months} months</strong></div>
+        </div>
+        <p className="pp-verified">Verified data &mdash; VILPE Sense system</p>
+
+        <div className="pp-qr-row">
+          <div className="cert-qr">
+            <QrCode url={url} />
+            <p className="faint">Verify authenticity</p>
+          </div>
+        </div>
+
+        <p className="pp-footer-id">ISSUED BY VILPE OY, FINLAND &mdash; TRUSTED BUILDING SOLUTIONS. DOCUMENT ID: {certId}</p>
+
+        <hr className="pp-divider" />
 
         <p className="cert-statement">
           Continuous VILPE Sense monitoring shows that <strong>{certifiedCount} of {rows.length} structures</strong> stayed
           dry over the last {WINDOW_DAYS} days, from {longDate(rows[0].c.from)} to {longDate(issued)}.
         </p>
-
-        <section className="cert-zones">
-          <ZoneDiagram rows={rows} />
-          <ul className="cert-zone-legend">
-            {rows.map(({ s, label }) => (
-              <li key={s.id}>
-                <i style={{ background: GRADE[s.latest.grade]?.color }} />
-                <span>{label}</span>
-                <strong className="num">{s.latest.score.toFixed(0)}</strong>
-              </li>
-            ))}
-          </ul>
-        </section>
 
         <table className="cert-table">
           <thead>
@@ -132,27 +177,16 @@ export default function Certificate() {
           </tbody>
         </table>
 
-        <footer className="cert-foot">
-          <div className="cert-rules">
-            <p className="cert-rules-title">How a structure is certified</p>
-            <ul>
-              <li>Health score {MIN_SCORE} or higher every day for {WINDOW_DAYS} days</li>
-              <li>Mold index below {MAX_MOLD.toFixed(1)} the whole time (VTT mold growth model)</li>
-              <li>No open equipment fault: fan running, sensors reporting</li>
-            </ul>
-            <p className="faint">Based on {building.readings.toLocaleString('en')} sensor readings. Demo certificate, not an insurance document.</p>
-          </div>
-          <div className="cert-qr">
-            <QrCode url={url} />
-            <p className="faint">Verify authenticity</p>
-          </div>
-        </footer>
-
-        <p className="cert-coverage num">
-          Sensor coverage: <strong>{rows.length} structures</strong> &nbsp;|&nbsp;
-          Monitoring period: <strong>{monthsBetween(building.period.from, building.period.to)} months</strong>
-        </p>
+        <div className="cert-rules">
+          <p className="cert-rules-title">How a structure is certified</p>
+          <ul>
+            <li>Health score {MIN_SCORE} or higher every day for {WINDOW_DAYS} days</li>
+            <li>Mold index below {MAX_MOLD.toFixed(1)} the whole time (VTT mold growth model)</li>
+            <li>No open equipment fault: fan running, sensors reporting</li>
+          </ul>
+          <p className="faint">Based on {building.readings.toLocaleString('en')} sensor readings. Demo certificate, not an insurance document.</p>
+        </div>
       </article>
-    </AppShell>
+    </div>
   )
 }
