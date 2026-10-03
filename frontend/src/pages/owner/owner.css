@@ -15,6 +15,24 @@
 .owner-head { margin-bottom: 16px; }
 .owner-head p { margin-top: 4px; }
 
+.owner-top { display: grid; gap: 12px; margin-bottom: 16px; }
+.score-card { display: flex; align-items: center; gap: 14px; background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+.donut { position: relative; width: 64px; height: 64px; flex: none; }
+.donut svg { width: 100%; height: 100%; transform: scale(1); }
+.donut-track { fill: none; stroke: var(--concrete); stroke-width: 8; }
+.donut-fill { fill: none; stroke-width: 8; stroke-linecap: round; transition: stroke-dasharray 0.3s; }
+.donut-label { position: absolute; inset: 0; display: grid; place-items: center; line-height: 1.1; text-align: center; }
+.donut-label strong { font-size: 1.1rem; display: block; }
+.donut-label span { font-size: 0.62rem; color: var(--ink-3); }
+
+.activity-list { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 2px; }
+.activity-list li { display: flex; align-items: flex-start; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); }
+.activity-list li:last-child { border-bottom: none; }
+.activity-list i { width: 8px; height: 8px; border-radius: 50%; margin-top: 5px; flex: none; }
+.activity-list i.high { background: var(--brick); }
+.activity-list i.med { background: var(--amber); }
+.activity-list strong { font-weight: 500; font-size: 0.9rem; }
+
 .metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 16px; }
 .metric { background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; display: grid; gap: 2px; }
 .metric-value { font-size: 1.9rem; font-weight: 600; line-height: 1.1; }
@@ -71,6 +89,7 @@
 .srow-score { grid-column: 3; grid-row: 1 / span 2; font-size: 1.3rem; font-weight: 600; }
 
 @media (min-width: 720px) {
+  .owner-top { grid-template-columns: 1fr auto; align-items: stretch; }
   .metrics { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .srow { grid-template-columns: 12px 1.1fr 2fr auto; }
   .srow-issues { grid-column: auto; }
