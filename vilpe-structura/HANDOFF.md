@@ -46,3 +46,26 @@ Demo story: portfolio, replay of the warehouse year (old alarms vs ours), watchd
 ## Schedule
 Data engine until ~20:30, proof check ~21:00, design ~22:00, React app until ~04:00, sleep 04:00 to 07:00,
 business model 07:00 to 08:30, deck and backup video until 10:30, rehearse until 11:30, submit by 12:00.
+
+## After the hackathon: how VILPE could test and develop this
+
+No new pilot needed to start. The data already exists: 16 months from the Vantaa warehouse, the exact dataset
+this prototype runs on. Step 1 is free: hand the watchdog findings to a VILPE engineer and ask about the two
+that matter most, was Green roof 2's fan really stopped for 379 days, and are the crawl space sensors really
+swapped. Both are confirmable from VILPE's own install records in an afternoon, and both become stronger proof
+points either way (a real fault caught, or a known test case the model correctly explains).
+
+Step 2 is a live data connection, not a rebuild. The prototype already reads one static file
+(`engine/output/data.json`) shaped like a REST response on purpose. VILPE's brochure states a REST API already
+exists and that building owners can share data by link, so the swap is pointing the same frontend at that API
+instead of a file, the scoring and watchdog logic do not change.
+
+Step 3 is partner conversations, not new engineering. LocalTapiola is named here as the proposed insurer
+because the certificate and passport pages are already built around what an insurer needs to see: verified
+history, not a self-reported survey. The VILPE service view turns every watchdog finding into a work order
+with a recommended fix, so VILPE's own service team is a near-term internal customer before any external
+partner, it is a better queue than what they likely use today.
+
+Step 4 is rollout, one site at a time. This warehouse becomes the reference case. The next 2 to 3 sites should
+be a deliberate mix, at least one with a known fault (to test detection) and one considered healthy (to test
+for false positives), before scoring the full Sense install base.
