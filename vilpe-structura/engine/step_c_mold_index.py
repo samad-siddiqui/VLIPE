@@ -5,6 +5,19 @@ VILPE's brochure says their mold index is based on this Finnish model (scale 0 t
 Material class: we tested all classes against VILPE's own latest mold index (see class_check.csv).
 The "very sensitive" reference class (pine sapwood, the most cautious setting) matches VILPE best,
 so the engine uses it. Concrete would normally be "medium resistant"; that result is kept in the check file.
+
+Why this replaces VILPE's default alarm (RH above 90 % for 24 h, guidebook p.25):
+that rule is one flat threshold with no memory. This model tracks a single running index (0 to 6) that rises
+when conditions favour growth and falls back when they do not.
+  - rh_crit(T) is the humidity mold actually needs at a given temperature, not a flat 90 %. Colder air needs
+    much higher humidity before growth is even possible; below 0 C nothing grows regardless of humidity.
+  - mold_history() accumulates risk over time at a rate set by how far RH sits above that curve, and decays
+    it back down once conditions turn unfavourable, so a humid day that fully dries out does not linger as
+    false risk.
+  - smart_alerts() only raises an alert when the index crosses into Watch (0.1), Warning (1.0) or
+    Critical (2.5, VILPE's own alarm level), not on every humid reading.
+Result on the real 16-month dataset: the index never exceeds 0.39 on any of the 7 structures, so 0 alerts
+fire, correctly, against the 180 VILPE's rule raises on that same data.
 """
 import math
 import pandas as pd

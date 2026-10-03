@@ -35,6 +35,16 @@ Demo story: portfolio, replay of the warehouse year (old alarms vs ours), watchd
   (Roof 1 0.00127 vs 0.00125, Green roof 2 0.0316 vs 0.0310, Green roof 1 0 vs 0). Peak index anywhere 0.39, so 0 smart alerts vs 180.
   Scenario: crawl space with sensors swapped back reaches 4.5 (Warning Aug 2025, Critical Oct 2025). Conditional, word carefully.
 
+  How it replaces VILPE's alarm: their rule is one flat threshold, RH above 90 % for 24 h, no memory of
+  temperature or how long conditions actually last. The VTT model tracks a running index (0 to 6) instead.
+  `rh_crit(T)` is the humidity mold actually needs at a given temperature, not a flat 90 %, colder air needs
+  much more humidity before growth is even possible, and nothing grows below 0 C. `mold_history()` accumulates
+  risk while conditions are favourable and decays it back down once they are not, so a humid day that fully
+  dries out does not linger as false risk the way a point-in-time threshold check does. Alerts fire only when
+  the index crosses a real tier, Watch 0.1, Warning 1.0, Critical 2.5 (VILPE's own alarm level), not on every
+  humid reading. On the real 16-month dataset the index never exceeds 0.39 anywhere, so 0 alerts fire,
+  correctly, against the 180 VILPE's rule raises on that same data.
+
 - Step D `engine/step_d_watchdog.py`: all 7 units show at least one issue. Green roof 2 fan stopped 379 days
   (May 2025 to May 2026) and keeps stopping through Sep 2026, uptime 6.7 %. Roof 1 and Green roof 1 indoor sensors
   silent 36 days after install. Roofs 2, 3, 4 outdoor sensors read over 3 °C warm in daytime for 270 to 320 days
