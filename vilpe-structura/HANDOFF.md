@@ -21,10 +21,10 @@ Demo story: portfolio, replay of the warehouse year (old alarms vs ours), watchd
 - Uncertain findings are worded carefully, for example "the data shows 0 rpm for 12 months; whether the fan stopped or the signal was lost, nothing flagged it".
 
 ## Findings so far (all reproducible with the scripts)
-- VILPE's default alarm (indoor RH above 90 % for 12 readings, guidebook p.25) fires 180 times in 16 months on structures whose mold index is 0 to 0.69 (alarm level 2.5). Roof 2 has mold index 0.00005 and the most alarms (37).
-- Viherkatto 2: fan 0 rpm from May 2025 to May 2026 (97 % of readings).
-- Katto 4: outdoor sensor about 9 °C warmer than the others at summer midday, likely direct sun.
-- Hallin alapohja: indoor and outdoor sensors look swapped ("outdoor" stays 8 to 13 °C all year, "indoor" follows the weather, correlation 0.97 with other outdoor sensors).
+- VILPE's default alarm (indoor RH above 90 % for 12 readings, guidebook p.25) fires 180 times in 16 months on structures whose VILPE-reported mold index is 0 to 0.69 (alarm level 2.5). Katto 2 has the most alarms (37) despite a VILPE mold index of just 0.00005.
+- Viherkatto 2's fan stopped 9 separate times, 453 days total, the longest stretch 379 days straight (13 May 2025 to 27 May 2026), and it is still recurring through September 2026. Equipment uptime 6.7 %.
+- 4 of 7 structures have an outdoor sensor reading too warm in daytime at some point in the 16 months, 3.5 to 8.7 °C above the other outdoor sensors: Katto 2, Katto 3, Katto 4, Viherkatto 2. Guidebook says never place in direct sun.
+- Hallin alapohja: indoor and outdoor sensors look swapped (outdoor sensor correlates 0.74 with the other outdoor sensors vs 0.92 to 0.97 for genuine outdoor sensors; "indoor" correlates 0.97).
 - Site layout shows about 45 leak sensors (RHT-2), but we only have the 7 control unit files.
 
 ## Done
