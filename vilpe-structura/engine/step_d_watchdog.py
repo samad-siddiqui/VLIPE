@@ -8,6 +8,15 @@ Four checks per structure:
                    sensors, averaged per week (guidebook: never place it in direct sunlight)
 4. Sensors swapped outdoor sensor does not follow the other outdoor sensors (correlation below 0.85)
                    while the indoor sensor does (above 0.90)
+
+Why this exists: VILPE's system only ever looks at the humidity number, it never checks whether the fan
+that is supposed to react to that number is actually running, or whether the sensor supplying the number
+is readable and correctly placed. A healthy-looking RH reading from a broken fan or a sun-baked sensor is
+not healthy, it is just unmonitored. These four checks look at the system itself instead of mold risk, so
+a stopped fan or a mis-placed sensor gets caught even on a day the humidity number looks perfectly fine.
+Each finding is tagged Equipment (checks 1 and 2, something physical is actually broken: fan, sensor link)
+or Data trust (checks 3 and 4, the reading itself cannot be trusted even though the hardware is reporting),
+the same split the health score and certificate use to decide what blocks certification.
 """
 import pandas as pd
 from step_b_old_alarm import load, SHEETS, ROOT

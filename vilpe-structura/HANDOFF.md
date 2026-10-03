@@ -50,6 +50,14 @@ Demo story: portfolio, replay of the warehouse year (old alarms vs ours), watchd
   silent 36 days after install. Roofs 2, 3, 4 outdoor sensors read over 3 °C warm in daytime for 270 to 320 days
   (sun or heat). Crawl space sensors likely swapped (outdoor corr 0.74 vs 0.92 to 0.97 for others).
 
+  How it solves problems B and C: VILPE's system only ever looks at the humidity number, it has no way to
+  know whether the fan that should react to that number is actually spinning, or whether the sensor supplying
+  the number is even readable or correctly placed. A fine-looking RH reading from a dead fan or a sun-baked
+  sensor is not fine, it is just unmonitored. The watchdog runs 4 checks against the system itself instead of
+  mold risk: fan stopped and sensor silent (tagged Equipment, something is physically broken), sensor reads
+  too warm and sensors likely swapped (tagged Data trust, the reading itself cannot be trusted). That tag is
+  what the health score and certificate use to decide what blocks certification.
+
 - Step E `engine/step_e_health_score.py`: daily 0-100 score per structure (mold 40, risk zone 20, drying 20,
   system 20). Green roof 2 lowest today at 55.6, Attention. 19 automated tests passing across all six steps.
 
